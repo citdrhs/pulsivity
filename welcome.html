@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %} {% endblock %}Pulsivity</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='bruh.css') }}">
+    <link rel="icon" href="{{ url_for('static', filename='newpulsivity_logo.png') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <ul>
+            <li><a href="{{ url_for('welcome') }}"><img class="logo" src="{{ url_for('static', filename='newpulsivity_logo.png') }}"></img></a></li>
+            <!--<li><a id="navbutton" href="{{ url_for('index') }}">Home</a></li>
+            <li><a id="navbutton" href="{{ url_for('login') }}">Login</a></li>-->
+            
+        </ul>
+    </nav>
+
+    <br><br>
+    <div class="content">
+        {% block content %} 
+            <p class="sus">Blood pressure management, medically-grounded insights, cardiovascular wellness——one heartbeat at a time.</p>
+            <button><a href="{{ url_for('signup') }}">Get Started</a></button>
+        {% endblock %}
+    </div>
+</body>
+</html>

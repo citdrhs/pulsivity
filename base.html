@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %} {% endblock %} Pulsivity</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='bruh2.css') }}">
+    <link rel="icon" href="{{ url_for('static', filename='pulsivity_logo.png') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <ul>
+            <li><a href="{{ url_for('login') }}"><img class="logo" src="{{ url_for('static', filename='pulsivity_logo.png') }}"></img></a></li>
+            <li><a id="navbutton" href="{{ url_for('welcome') }}">Home</a></li>
+            <li><a id="navbutton" href="{{ url_for('login') }}">Login</a></li>
+        </ul>
+    </nav>
+
+    <br><br>
+    <div class="content">
+        {% block content %} {% endblock %}
+    </div>
+</body>
+</html>

@@ -1,0 +1,136 @@
+body{
+    background-color: rosybrown;
+    font-family:Arial, Helvetica, sans-serif;
+    font-size: larger;
+    margin: 0;
+    padding: 0;
+}
+
+button, input{
+    font-family: 'Courier New', Courier, monospace;
+    border-color:black;
+    border-style: solid;
+    border-width: 1px;
+    border-radius: 20px;
+    height: 20px;
+}
+
+label {
+    font-family: 'Courier New';
+    margin-left: -40px;
+    color: aliceblue;
+    font-style: italic;
+}
+
+input[type="checkbox"] {
+    transform: scale(0.8); /* Makes it 50% larger */
+    margin-top: 10px; /* Adds space around it to prevent overlap */
+    margin-left:-5px;
+}
+
+button:hover{
+    background-color: rgb(96, 71, 71);
+    color: aliceblue;
+    border-color: black;
+    border-width: 1px;
+}
+
+.logo{
+    height: 80px;
+}
+
+input{
+    width: 123px;
+    height: 20px;
+}
+
+.navbar ul{
+    display: flex;
+    list-style-type: none;
+    background: linear-gradient(rgb(96, 71, 71), rosybrown);
+    padding: 10px;
+    margin: 0px; 
+    font-size: larger;
+}
+li:hover{
+    scale: 1.05;
+}
+
+form{
+    margin: 10px;
+}
+
+#navbutton{
+    text-decoration: none;
+    color: black;
+    font-size: larger;
+
+}
+li{
+    margin-left: 10px;
+    margin-top: 20px;
+    padding-left: 20px;
+
+    font-family:'Courier New';
+    font-weight: normal;
+}
+
+
+table, th, td{
+    border: 1px solid black;
+    border-collapse: collapse;
+    background-color: aliceblue;
+    padding: 10px;
+    margin-top: 10px;
+    margin-left: 10px;
+}
+
+table{
+    margin-bottom: 50px;
+}
+
+#sections{
+    display: flex;
+}
+
+  
+th, td {
+    /*padding: 10px;*/
+    text-align: left;
+}
+
+.logo:hover{
+    animation: pulse 3s;
+}
+
+.healthChart{
+    width: 70%;
+}
+
+#healthChart{
+    background-color: rgb(203, 169, 169);
+    margin-top: 10px;
+    margin-left: 50px;
+    margin-bottom: 10px;
+    margin-right: 200px;
+    border: 1px solid black;
+
+}
+
+
+/*animation for it to pulse when user's mouse hovers the logo*/
+/* :) */
+@keyframes pulse {
+    25%{
+        transform: scale(1.2);
+    }
+    50%{
+        transform: scale(1);
+    }
+    75%{
+        transform: scale(1.2);
+    }
+    100%{
+        transform: scale(1);
+    }
+}

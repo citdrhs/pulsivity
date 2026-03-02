@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<head>
+    <title>Pulsivity</title>
+    <!--referencing style.css for styling-->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <!--make the icon (the little picture on the tab) the logo-->
+    <link rel="icon" href="{{ url_for('static', filename='pulsivity_logo.png') }}">
+</head>
+<body>
+
+    <!--navigation bar with Pulsivity Logo, link to index (current file), and link to login page-->
+    <nav class="navbar">
+        <ul>
+            <li><a href="{{ url_for('index') }}"><img class="logo" src="{{ url_for('static', filename='pulsivity_logo.png') }}"></img></a></li>
+            <li><a id="navbutton" href="{{ url_for('index') }}">Home</a></li>
+            <li><a id="navbutton" href="{{ url_for('logout') }}">Logout</a></li>
+
+                <!--<li><a id="navbutton" href="{{ url_for('login') }}">Login</a></li>-->
+
+            <!--<li><a id="navbutton" href="{{ url_for('welcome') }}">Welcome</a></li>-->
+        </ul>
+    </nav>
+
+<!--FEBRUARY 28TH-->
+<form action="/toggle_reminders" method="POST" id="enablenotifs">
+    
+    
+    <input type="checkbox" name="reminders" id ="checkbox" class="checkbox" onchange="this.form.submit()"
+            {% if reminders_enabled %} checked {% endif %}>
+    <label for="reminders"> <-- Enable Reminders (morning & evening)</label>
+        
+</form>
+
+<!--form to enter data, aligning with my SQL table-->
+<form action="/add" method="POST">
+    <input type="number" name="systolic" placeholder=" Systolic (#)" required>
+    <input type="number" name="diastolic" placeholder=" Diastolic (#)" required>
+    <input type="number" name="pulse" placeholder=" Pulse (#)" required>
+    <button type="submit">Add Entry</button>
+</form>
+<!--add maybe an alert through js? "are you sure you want to delete"-->
+
+<div id="sections">
+<!--table to show existing database records-->
+<table>
+    <tr>
+        <th>SYS</th>
+        <th>DIA</th>
+        <th>PULSE</th>
+        <th>RECORDED ON</th>
+    </tr>
+    <!--loop through each row in the 'records' variable passed from app.py-->
+    {% for row in records %}
+
+    <!--searched up how to add in date variables, and sought help from Gemini for formatting/syntax-->
+    <tr>
+        <td>{{ row[0] }}</td> <!-- systolic -->
+        <td>{{ row[1] }}</td> <!-- diastolic -->
+        <td>{{ row[2] }}</td> <!-- pulse -->
+        <!--LINK TO SOURCE (for time values below): https://share.google/aimode/YtL6x0LzCH63b1PWn-->
+        <td>{{ row[3].strftime('%Y-%m-%d %H:%M') }}</td> <!-- date --> 
+        <td id="yum"><!--<form action="/delete" method="POST"><button type="submit">delete</button></form>-->
+            <!--used templates to refer to the function-->
+            <form onclick="return confirm('are you sure you want to delete?')" action="{{ url_for('del_record', id=row[4]) }}" method="POST" style="display:inline;">
+                <!--the onclick confirm i borrowed from W3Schools-->
+                <!--LINK TO SOURCE: https://www.w3schools.com/jsref/met_win_confirm.asp-->
+                <button id="submit" type="submit">Delete</button>
+            </form>
+        </td>
+    </tr>
+    {% endfor %}
+
+    <!--in the process of adding a way to delete entries (not all, but maybe have a button beside each one?)-->
+</table>
+
+<!--borrowed code + insight from Chart.js:
+https://www.chartjs.org/docs/latest/getting-started/usage.html-->
+<!--First, we need to have a canvas in our page. 
+    It's recommended to give the chart its own container for responsiveness.-->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <div class="healthChart">
+        <canvas id="healthChart"></canvas>
+    </div>
+    <script>
+    let myChart;
+    
+    function refreshChart() {
+        fetch('/api/health_stats')
+            .then(response => response.json())
+            .then(data => {
+                const labels = data.map((_, i) => i + 1); // Entry number as x-axis
+                const systolic = data.map(row => row.systolic);
+                const diastolic = data.map(row => row.diastolic);
+                const pulse = data.map(row => row.pulse);
+    
+                if (!myChart) {
+                    const ctx = document.getElementById('healthChart').getContext('2d');
+                    myChart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: labels,
+                            datasets: [
+                                { label: 'Systolic', data: systolic, borderColor: 'indianred', fill: false },
+                                { label: 'Diastolic', data: diastolic, borderColor: 'pink', fill: false },
+                                { label: 'Pulse', data: pulse, borderColor: 'mistyrose', fill: false }
+                            ]
+                        },
+                        options: {
+                            plugins: {
+                            legend: {
+                                labels: {
+                                    color: 'black',
+                                    font: {
+                                        size: 16,
+                                        family: "'Courier New', 'Courier', 'monospace'",
+                                        weight: 'bold'
+                                    }
+                                }
+                            }
+                            },
+                            scales: {
+                                x: { title: { display: true, text: 'Entries', color: 'black', font: { size: 16, family: "'Courier New', 'Courier', 'monospace'", style: 'normal', weight: 'bold' } }, 
+                                    ticks: {
+                                        font: { size: 16, family: "'Courier New', 'Courier', 'monospace'", style: 'normal', weight: 'bold'
+                                        }},
+                                    grid: {
+                                        color: 'black',
+                                        //borderColor: 'black'
+                                    }
+                                },
+                                y: { title: { display: true, text: 'Values (mmHg)', color: 'black', font: { size: 16, family: "'Courier New', 'Courier', 'monospace'", style: 'normal', weight: 'bold' } },
+                                    ticks: {
+                                        font: { size: 16, family: "'Courier New', 'Courier', 'monospace'", style: 'normal', weight: 'bold'
+                                        }},
+                                    grid: {
+                                        color: 'black',
+                                        borderColor: 'black'
+                                    }
+                                }
+                            }
+                        }
+                    });
+                } else {
+                    myChart.data.labels = labels;
+                    myChart.data.datasets[0].data = systolic;
+                    myChart.data.datasets[1].data = diastolic;
+                    myChart.data.datasets[2].data = pulse;
+                    myChart.update();
+                }
+            });
+    }
+    
+    document.addEventListener('DOMContentLoaded', refreshChart);
+    </script>
+</div>
+</body>
+</html>

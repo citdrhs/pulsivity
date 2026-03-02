@@ -1,0 +1,153 @@
+body{
+    background-image: linear-gradient(to bottom, rgba(96, 71, 71, 1), /*rgba(188, 143, 143, 0.55)*/rgba(0, 0, 0, 0.55)),
+    url('/static/parents.JPG');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    font-family:'Courier New', Courier, monospace;
+    font-size: larger;
+    margin: 0;
+    padding: 0;
+}
+
+p{
+    font-size:small;
+}
+
+
+.login-box{
+    width: 350px; 
+    max-width: 90%; 
+        
+    /*MOVE IT UP: reduces top margin*/
+    margin: auto; 
+    
+    /*REMOVE SCROLLBAR: fits the screen size*/
+    height: auto; 
+    padding: 40px 20px; /*adds vertical space inside the box*/
+    
+    background: linear-gradient(rosybrown, rgb(227, 207, 207));
+    border: black 1px solid;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-radius: 15px;
+    
+}
+
+input{
+    display: block;
+    margin-bottom: 30px;
+    width: 350px;
+    height: 40px;
+    font-size: large;
+}
+
+button, input{
+    font-family: 'Courier New', Courier, monospace;
+    font-size: large;
+    border-color: black;
+    border-width: 1px;
+    border-style: solid;
+    border-radius: 10px;
+}
+
+button:hover{
+    background-color: rgb(96, 71, 71);
+    scale: 1.05;
+    color: aliceblue;
+    border-color: black;
+    border-width: 1px;
+}
+
+.logo{
+    height: 80px;
+}
+
+.navbar ul{
+    display: flex;
+    list-style-type: none;
+    padding: 10px;
+    margin: 0px; 
+    font-size: larger;
+}
+
+form{
+    margin: 10px;
+}
+
+li:hover{
+    scale: 1.05;
+}
+
+#navbutton{
+    text-decoration: none;
+    color: black;
+    font-size: larger;
+
+}
+li{
+    margin-left: 10px;
+    margin-top: 20px;
+    padding-left: 20px;
+
+    font-family:'Courier New';
+    font-weight: normal;
+}
+
+
+table, th, td{
+    border: 1px solid black;
+    border-collapse: collapse;
+    background-color: aliceblue;
+    padding: 10px;
+    margin-top: 10px;
+    margin-left: 10px;
+}
+
+#sections{
+    display: flex;
+}
+
+  
+th, td {
+    /*padding: 10px;*/
+    text-align: left;
+}
+
+.logo:hover{
+    animation: pulse 3s;
+}
+
+.healthChart{
+    width: 70%;
+}
+
+#healthChart{
+    background-color: rgb(203, 169, 169);
+    margin-top: 10px;
+    margin-left: 50px;
+    margin-bottom: 10px;
+    margin-right: 200px;
+    border: 1px solid black;
+
+}
+
+/*animation for it to pulse when user's mouse hovers the logo*/
+/* :) */
+@keyframes pulse {
+    25%{
+        transform: scale(1.2);
+    }
+    50%{
+        transform: scale(1);
+    }
+    75%{
+        transform: scale(1.2);
+    }
+    100%{
+        transform: scale(1);
+    }
+}
