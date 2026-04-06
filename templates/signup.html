@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Login | {% endblock %}
+{% block title %}Signup | {% endblock %}
 
 {% block content %}
 <div class="login-box">
@@ -20,6 +20,8 @@
         <button type="submit" class="login-btn">Sign Up</button>
         <p>Already have an account? <a href="/login">Click here!</a></p>
     </form>
-
+    {% if error %}
+        <p class="error-message">{{ error }}</p>
+    {% endif %}
 </div>
 {% endblock %}

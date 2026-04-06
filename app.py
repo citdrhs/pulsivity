@@ -28,6 +28,7 @@ app.secret_key = os.environ['SECRET_KEY']
 def get_db_connection():
     return psycopg2.connect(
         host='drhscit.org', 
+        port=5433,
         database=os.environ['DB'],
         user=os.environ['DB_UN'], 
         password=os.environ['DB_PW']
@@ -62,7 +63,7 @@ def index():
     cur = conn.cursor()
 
     cur.execute(
-        'SELECT reminders_enables FROM health_accounts WHERE id = %s', 
+        'SELECT reminders_enabled FROM health_accounts WHERE id = %s', 
         (user_id,)
     )
     reminders_enabled=cur.fetchone()[0]
@@ -122,26 +123,64 @@ def logout():
     return redirect(url_for('welcome'))
 
 
+#@app.route('/signup', methods=['GET', 'POST'])
+#def signup():
+    #error=None
+    #if request.method == 'POST':
+        #email = request.form.get('email')
+        #password = generate_password_hash(request.form.get('password'))
+        
+        #conn = get_db_connection()
+        #cur = conn.cursor()
+
+        #try:
+            #cur.execute('INSERT INTO health_accounts (email, password) VALUES (%s, %s)', (email, password))
+            #conn.commit()
+            #return redirect(url_for('login'))
+        #except Exception as e:
+            #error="An account with that email already exists."
+            #return f"Error: {e}" 
+        #finally:
+            #cur.close()
+            #conn.close()
+            
+    #return render_template('signup.html', error=error)
+
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
+    error = None
     if request.method == 'POST':
         email = request.form.get('email')
-        #password hash for security purposes
-        password = generate_password_hash(request.form.get('password'))
+        password = request.form.get('password')
         
         conn = get_db_connection()
         cur = conn.cursor()
-        try:
-            cur.execute('INSERT INTO health_accounts (email, password) VALUES (%s, %s)', (email, password))
-            conn.commit()
-            return redirect(url_for('login'))
-        except Exception as e:
-            return f"Error: {e}" 
-        finally:
-            cur.close()
-            conn.close()
+
+        # Check if user exists
+        cur.execute('SELECT id FROM health_accounts WHERE email = %s', (email,))
+        if cur.fetchone():
+            error = "An account with that email already exists."
+        else:
+            # Create account
+            hashed_pw = generate_password_hash(password)
             
-    return render_template('signup.html')
+            # The 'try' block handles the actual database write
+            try:
+                cur.execute('INSERT INTO health_accounts (email, password) VALUES (%s, %s)', (email, hashed_pw))
+                conn.commit()
+                cur.close()
+                conn.close()
+                return redirect(url_for('login'))
+            
+            # 'Exception as e' catches any crash and stores the error message in 'e'
+            except Exception as e:
+                error = f"Database error: {e}" 
+            
+        cur.close()
+        conn.close()
+            
+    return render_template('signup.html', error=error)
+
 
 #welcome page
 @app.route('/welcome')
@@ -163,7 +202,7 @@ def toggle_reminders():
     #running SQL command to update the reminders_enabled column i added
     #in the health_accounts table for the logged-in user
     cur.execute(
-        'UPDATE health_accounts SET reminders_enables = %s WHERE id = %s',
+        'UPDATE health_accounts SET reminders_enabled = %s WHERE id = %s',
         (enabled, user_id)
     )
     conn.commit()
@@ -208,6 +247,29 @@ def health_stats_api():
     data = [{'systolic': r[0], 'diastolic': r[1], 'pulse': r[2]} for r in rows]
     return jsonify(data)
 
+#MARCH 19TH, APP ROUTE TO DELETE ACCOUNT
+@app.route('/delete_account', methods=['POST'])
+def delete_account():
+    user_id = session.get('user_id')
+    if not user_id:
+        return redirect(url_for('login'))
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+    
+    #delete the user's health stats first to avoid foreign key issues
+    cur.execute('DELETE FROM health_stats WHERE user_id = %s', (user_id,))
+    
+    #then delete the user's account
+    cur.execute('DELETE FROM health_accounts WHERE id = %s', (user_id,))
+    
+    conn.commit()
+    cur.close()
+    conn.close()
+    
+    session.pop('user_id', None) 
+    return redirect(url_for('welcome'))
+
 #used POST method for safer deletions via form buttons
 @app.route('/delete/<int:id>', methods=['POST'])
 def del_record(id):
@@ -244,5 +306,4 @@ def add_record():
     return redirect(url_for('index'))
 
 if __name__ == '__main__':
-    app.run(debug=True)
-
+    app.run(host="0.0.0.0", debug=True)

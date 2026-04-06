@@ -14,12 +14,22 @@
             <li><a href="{{ url_for('index') }}"><img class="logo" src="{{ url_for('static', filename='pulsivity_logo.png') }}"></img></a></li>
             <li><a id="navbutton" href="{{ url_for('index') }}">Home</a></li>
             <li><a id="navbutton" href="{{ url_for('logout') }}">Logout</a></li>
+            <!--
+            <li id="delacc">
+                <form action="{{ url_for('delete_account') }}" method="POST" style="display:inline;">
+                    <button id="delete_account" type="submit">Delete Account</button>
+                </form>
+
+            </li>-->
 
                 <!--<li><a id="navbutton" href="{{ url_for('login') }}">Login</a></li>-->
 
             <!--<li><a id="navbutton" href="{{ url_for('welcome') }}">Welcome</a></li>-->
         </ul>
     </nav>
+
+<!--MARCH 10TH-->
+
 
 <!--FEBRUARY 28TH-->
 <form action="/toggle_reminders" method="POST" id="enablenotifs">
@@ -30,7 +40,6 @@
     <label for="reminders"> <-- Enable Reminders (morning & evening)</label>
         
 </form>
-
 <!--form to enter data, aligning with my SQL table-->
 <form action="/add" method="POST">
     <input type="number" name="systolic" placeholder=" Systolic (#)" required>
@@ -77,10 +86,18 @@
 https://www.chartjs.org/docs/latest/getting-started/usage.html-->
 <!--First, we need to have a canvas in our page. 
     It's recommended to give the chart its own container for responsiveness.-->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!--loading html2canvas first-->
+    <script src="https://cdnjs.cloudflare.com"></script>
+
+    <!--loading jsPDF second-->
+    <script src="https://cdnjs.cloudflare.com"></script>
+
+    <script src="{{ url_for('static', filename='chart.js') }}"></script>
     <div class="healthChart">
         <canvas id="healthChart"></canvas>
     </div>
+    <button type="button" onclick="saveAsPDF()">Save as PDF</button>
     <script>
     let myChart;
     
@@ -91,6 +108,7 @@ https://www.chartjs.org/docs/latest/getting-started/usage.html-->
                 const labels = data.map((_, i) => i + 1); // Entry number as x-axis
                 const systolic = data.map(row => row.systolic);
                 const diastolic = data.map(row => row.diastolic);
+                const pulsep = data.map(row => row.systolic - row.diastolic);
                 const pulse = data.map(row => row.pulse);
     
                 if (!myChart) {
@@ -102,7 +120,8 @@ https://www.chartjs.org/docs/latest/getting-started/usage.html-->
                             datasets: [
                                 { label: 'Systolic', data: systolic, borderColor: 'indianred', fill: false },
                                 { label: 'Diastolic', data: diastolic, borderColor: 'pink', fill: false },
-                                { label: 'Pulse', data: pulse, borderColor: 'mistyrose', fill: false }
+                                { label: 'Pulse', data: pulse, borderColor: 'mistyrose', fill: false },
+                                { label: 'Pulse P.', data: pulsep, borderColor: 'aliceblue', fill: false }
                             ]
                         },
                         options: {
@@ -145,13 +164,50 @@ https://www.chartjs.org/docs/latest/getting-started/usage.html-->
                     myChart.data.datasets[0].data = systolic;
                     myChart.data.datasets[1].data = diastolic;
                     myChart.data.datasets[2].data = pulse;
+                    myChart.data.datasets[3].data = pulsep;
                     myChart.update();
                 }
             });
     }
     
+    //borrowed from Stack Overflow: 
+    //https://stackoverflow.com/questions/46264021/export-html-content-with-chart-jscanvases-to-pdf#:~:text=jscanvases%20to%20PDF,-Ask%20Question&text=I%20have%20an%20HTML%20page,content%20into%20a%20PDF%20file.&text=$(%22.,alternative%20approaches%20would%20be%20appreciated.
+    //code adjusted and debugged by critical thinking
+    function saveAsPDF() {
+        console.log("Button clicked!");
+
+        //error testing alert (for my sanity)
+        if (typeof html2canvas !== 'function') {
+            alert("html2canvas library failed to load. Please check your internet or CDN link.");
+            return;
+        }
+
+        const container = document.getElementById("healthChart");
+    
+        //for version 1.4.1 apparently
+        html2canvas(container, {
+            useCORS: true,
+            scale: 2
+        }).then(canvas => {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('p', 'mm', 'a4');
+            const imgData = canvas.toDataURL('image/png');
+        
+            doc.addImage(imgData, 'PNG', 10, 10, 190, 0);
+            doc.save('Health_Report.pdf');
+            console.log("Download triggered!");
+        }).catch(err => {
+            console.error("Snapshot failed:", err);
+        });
+    }
+
+
+
     document.addEventListener('DOMContentLoaded', refreshChart);
     </script>
 </div>
+<footer>
+    <p>© 2026 pulsivity. all rights reserved. for ammu & papa :)</p>
+</footer>
 </body>
 </html>

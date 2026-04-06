@@ -15,6 +15,7 @@ def init_db():
     #connection to credentials from .env
     conn = psycopg2.connect(
         host='drhscit.org',
+        port=5433,
         database=os.environ['DB'],
         user=os.environ['DB_UN'],
         password=os.environ['DB_PW']
@@ -50,6 +51,7 @@ def init_db():
             id serial PRIMARY KEY,
             email TEXT NOT NULL UNIQUE,
             password TEXT NOT NULL
+            reminders_enabled BOOLEAN DEFAULT FALSE
         );
     ''')
     
