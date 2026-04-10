@@ -4,13 +4,30 @@
 #import necessary Flask components and database libraries
 import os
 import psycopg2
-from flask import Flask, render_template, request, redirect, session, url_for, jsonify, flash #for flashing notifs to the user
+
+#i need the import below to allow for exports as a csv file, along with make_response
+import csv
+from flask import Flask, make_response, render_template, request, redirect, session, url_for, jsonify, flash #for flashing notifs to the user
 from dotenv import load_dotenv
+#for the password hash for each user (more security)
 from werkzeug.security import generate_password_hash
 from werkzeug.security import check_password_hash
 
+#to get current date for filename and possibly scheduling email reminders
+from datetime import datetime
+
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
+
+#pdf export stuff
+#COME BACK TO THIS
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+from io import BytesIO
+from flask import send_file
+
+#for the scheduled reminders, after pip install apscheduler
+from apscheduler.schedulers.background import BackgroundScheduler
 
 #initialize the Flask app
 app = Flask(__name__)
@@ -48,7 +65,34 @@ def send_email(to_email, subject, html_content):
         print(f"Email sent to {to_email}")
     except Exception as e:
         print("SendGrid error:", e)
+        
 
+def scheduled_reminders():
+    print("Running scheduled reminders...")
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    cur.execute('SELECT email FROM health_accounts WHERE reminders_enabled = TRUE')
+    users = cur.fetchall()
+
+    for user in users:
+        send_email(
+            user[0],
+            "Don't forget to log your blood pressure today!",
+            """
+            <h2>Pulsivity Health Reminder</h2>
+            <p>Hello,</p>
+            <p>This is your scheduled reminder to log today's blood pressure readings (morning and evening) in the Pulsivity app.</p>
+
+            <p>Regular monitoring can help you track your health and share important information with your healthcare provider.</p>
+            <p>Thank you for using Pulsivity!<br>
+            The Pulsivity Team</p>
+            """
+        )
+
+    cur.close()
+    conn.close()
 
 #ROUTE: display the main page with the list of previous entries
 #altered to check for user login and only show records for the logged-in user
@@ -123,29 +167,6 @@ def logout():
     return redirect(url_for('welcome'))
 
 
-#@app.route('/signup', methods=['GET', 'POST'])
-#def signup():
-    #error=None
-    #if request.method == 'POST':
-        #email = request.form.get('email')
-        #password = generate_password_hash(request.form.get('password'))
-        
-        #conn = get_db_connection()
-        #cur = conn.cursor()
-
-        #try:
-            #cur.execute('INSERT INTO health_accounts (email, password) VALUES (%s, %s)', (email, password))
-            #conn.commit()
-            #return redirect(url_for('login'))
-        #except Exception as e:
-            #error="An account with that email already exists."
-            #return f"Error: {e}" 
-        #finally:
-            #cur.close()
-            #conn.close()
-            
-    #return render_template('signup.html', error=error)
-
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
     error = None
@@ -210,6 +231,34 @@ def toggle_reminders():
     conn.close()
     return redirect(url_for('index'))
 
+@app.route('/run_reminders')
+def run_reminders():
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    cur.execute('SELECT email FROM health_accounts WHERE reminders_enabled = TRUE')
+    users = cur.fetchall()
+
+    for user in users:
+        send_email(
+            user[0],
+            "Don't forget to log your blood pressure today!",
+            """
+            <h1>Pulsivity Health Reminder</h2>
+            <h2>Hello,</h2>
+            <h2>This is your scheduled reminder to log today's blood pressure readings (morning and evening) in the Pulsivity app.</h2>
+
+            <h2>Regular monitoring can help you track your health and share important information with your healthcare provider.</h2>
+            <h2>Thank you for using Pulsivity!<br>
+            The Pulsivity Team</h2>
+            """
+        )
+    cur.close()
+    conn.close()
+
+    return "Reminders sent!"
+
+
 #FEB 28TH: app route to test email notifs
 @app.route('/test_email')
 def test_email():
@@ -232,6 +281,9 @@ def test_email():
 
     return "Test email sent! Check your inbox."
 
+@app.route('/help')
+def help():
+    return render_template('help.html', title="Help | ")
 
 #FEBRUARY 19TH, APP ROUTE TO UPDATE CHART
 @app.route('/api/health_stats')
@@ -246,6 +298,99 @@ def health_stats_api():
     conn.close()
     data = [{'systolic': r[0], 'diastolic': r[1], 'pulse': r[2]} for r in rows]
     return jsonify(data)
+
+@app.route('/export')
+def export_csv():
+    user_id = session.get('user_id')
+    if not user_id:
+        return redirect(url_for('login'))
+    
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute('SELECT date_recorded, systolic, diastolic, pulse FROM health_stats WHERE user_id = %s ORDER BY date_recorded;', (user_id,))
+    rows = cur.fetchall()
+    cur.close()
+    conn.close()
+
+    #create response from csv
+    output = "Date,Systolic,Diastolic,Pulse\n"
+    for row in rows:
+        output += f"{row[0]},{row[1]},{row[2]},{row[3]}\n"
+
+    #generates filename with current date (for easier organization for users)
+    today_str = datetime.now().strftime("%Y-%m-%d")
+    filename = f"blood_pressure_log_{today_str}.csv"
+
+    response = make_response(output)
+    response.headers["Content-Disposition"] = f"attachment; filename={filename}"
+    response.headers["Content-Type"] = "text/csv"
+    return response
+
+#APRIL 9TH, APP ROUTE TO EXPORT PDF (NOT WORKING YET)
+@app.route('/export_pdf')
+def export_pdf():
+    user_id = session.get('user_id')
+    if not user_id:
+        return redirect(url_for('login'))
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute(
+        'SELECT date_recorded, systolic, diastolic, pulse FROM health_stats WHERE user_id = %s ORDER BY date_recorded;',
+        (user_id,)
+    )
+    rows = cur.fetchall()
+    cur.close()
+    conn.close()
+
+    #create PDF in memory
+    buffer = BytesIO()
+    p = canvas.Canvas(buffer, pagesize=letter)
+
+    #title
+    p.setFont("Courier-Bold", 16)
+    p.drawString(50, 750, "Pulsivity Health Report")
+
+    #date
+    today_str = datetime.now().strftime("%Y-%m-%d")
+    p.setFont("Courier", 12)
+    p.drawString(50, 730, f"Export Date: {today_str}")
+
+    #table headers
+    y = 700
+    p.drawString(30, y, "Date")
+    p.drawString(280, y, "SYS")
+    p.drawString(320, y, "DIA")
+    p.drawString(360, y, "Pulse")
+
+    #data rows
+    y -= 20
+    for row in rows:
+        p.drawString(30, y, str(row[0]))
+        p.drawString(280, y, str(row[1]))
+        p.drawString(320, y, str(row[2]))
+        p.drawString(360, y, str(row[3]))
+        y -= 20
+
+    #start new page if too long
+    if y < 50:
+        p.showPage()
+        y = 750
+
+    p.save()
+
+    buffer.seek(0)
+
+    filename = f"blood_pressure_report_{today_str}.pdf"
+
+    return send_file(
+        buffer,
+        as_attachment=True,
+        download_name=filename,
+        mimetype='application/pdf'
+    )
+
+
 
 #MARCH 19TH, APP ROUTE TO DELETE ACCOUNT
 @app.route('/delete_account', methods=['POST'])
@@ -305,5 +450,17 @@ def add_record():
     #back to the home page to see their new entry in the list
     return redirect(url_for('index'))
 
+
 if __name__ == '__main__':
+    scheduler = BackgroundScheduler()
+
+    #morning reminder (8 AM)
+    scheduler.add_job(scheduled_reminders, 'cron', hour=8, minute=0)
+
+    
+    #evening reminder (8 PM)
+    scheduler.add_job(scheduled_reminders, 'cron', hour=20, minute=2)
+
+    scheduler.start()
     app.run(host="0.0.0.0", debug=True)
+
